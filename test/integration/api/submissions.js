@@ -1336,6 +1336,28 @@ describe('api: /forms/:id/submissions', () => {
                 done();
               })))))));
 
+    it('should return an updatedAt-filtered zipfile with the relevant data', testService((service) =>
+      service.login('alice', (asAlice) =>
+        asAlice.post('/v1/projects/1/forms/simple/submissions')
+          .send(testData.instances.simple.one)
+          .set('Content-Type', 'text/xml')
+          .expect(200)
+          .then(() => asAlice.post('/v1/projects/1/forms/simple/submissions')
+            .send(testData.instances.simple.two)
+            .set('Content-Type', 'text/xml')
+            .expect(200))
+          .then(() => asAlice.patch('/v1/projects/1/forms/simple/submissions/two')
+            .send({ reviewState: 'approved' })
+            .expect(200))
+          .then(() => new Promise((done) =>
+            zipStreamToFiles(asAlice.get('/v1/projects/1/forms/simple/submissions.csv.zip?$filter=__system/updatedAt eq null'), (result) => {
+              result.filenames.should.eql([ 'simple.csv' ]);
+              const lines = result['simple.csv'].split('\n');
+              lines.length.should.equal(3);
+              lines[1].endsWith(',one,Alice,30,one,5,Alice,0,0').should.equal(true);
+              done();
+            }))))));
+
     it('should return a zipfile with the relevant attachments', testService((service) =>
       service.login('alice', (asAlice) =>
         asAlice.post('/v1/projects/1/forms?publish=true')
@@ -1731,6 +1753,20 @@ one,h,/data/h,2000-01-01T00:06,2000-01-01T00:07,-5,-6,,ee,ff
                   done();
                 })))))));
     });
+
+    it('should log the action in the audit log', testService((service) =>
+      service.login('alice', (asAlice) =>
+        asAlice.get('/v1/projects/1/forms/simple/submissions.csv.zip')
+          .expect(200)
+          .then(() => asAlice.get('/v1/audits?action=form.submission.export')
+            .set('X-Extended-Metadata', 'true')
+            .expect(200)
+            .then(({ body }) => {
+              body.length.should.equal(1);
+              body[0].actorId.should.equal(5);
+              body[0].actee.xmlFormId.should.equal('simple');
+              should.not.exist(body[0].details);
+            })))));
   });
 
   describe('.csv GET', () => {
@@ -1797,6 +1833,20 @@ one,h,/data/h,2000-01-01T00:06,2000-01-01T00:07,-5,-6,,ee,ff
               rows[1].slice(24).should.equal(',rthree,Chelsea,38,,,rthree,5,Alice,0,0');
               rows[2].slice(24).should.equal(',rtwo,Bob,34,,,rtwo,5,Alice,0,0');
               rows[3].slice(24).should.equal(',rone,Alice,30,,,rone,5,Alice,0,0');
+            })))));
+
+    it('should log the action in the audit log', testService((service) =>
+      service.login('alice', (asAlice) =>
+        asAlice.get('/v1/projects/1/forms/simple/submissions.csv')
+          .expect(200)
+          .then(() => asAlice.get('/v1/audits?action=form.submission.export')
+            .set('X-Extended-Metadata', 'true')
+            .expect(200)
+            .then(({ body }) => {
+              body.length.should.equal(1);
+              body[0].actorId.should.equal(5);
+              body[0].actee.xmlFormId.should.equal('simple');
+              should.not.exist(body[0].details);
             })))));
   });
 
@@ -1908,6 +1958,18 @@ one,h,/data/h,2000-01-01T00:06,2000-01-01T00:07,-5,-6,,ee,ff
                 result['simple.csv'].should.equal('SubmissionDate,meta-instanceID,name,age,KEY,SubmitterID,SubmitterName,AttachmentsPresent,AttachmentsExpected,Status,ReviewState,DeviceID,Edits\n');
                 done();
               })))))));
+
+    it('should not log the action in the audit log', testService((service) =>
+      service.login('alice', (asAlice) =>
+        asAlice.post('/v1/projects/1/forms/simple/draft')
+          .expect(200)
+          .then(() => asAlice.get('/v1/projects/1/forms/simple/draft/submissions.csv.zip')
+            .expect(200))
+          .then(() => asAlice.get('/v1/audits?action=form.submission.export')
+            .expect(200)
+            .then(({ body }) => {
+              body.length.should.equal(0);
+            })))));
   });
 
   describe('GET', () => {
@@ -2841,6 +2903,55 @@ one,h,/data/h,2000-01-01T00:06,2000-01-01T00:07,-5,-6,,ee,ff
                 ]);
               })
           ])))));
+  });
+
+  describe('[version] /:rootId/diffs GET', () => {
+    it('should return notfound if the root does not exist', testService((service) =>
+      service.login('alice', (asAlice) =>
+        asAlice.get('/v1/projects/1/forms/simple/submissions/one/diffs').expect(404))));
+
+    it('should reject if the user cannot read', testService((service) =>
+      service.login('alice', (asAlice) =>
+        asAlice.post('/v1/projects/1/forms/simple/submissions')
+          .send(testData.instances.simple.one)
+          .set('Content-Type', 'text/xml')
+          .expect(200)
+          .then(() => service.login('chelsea', (asChelsea) =>
+            asChelsea.get('/v1/projects/1/forms/simple/submissions/one/diffs').expect(403))))));
+
+    it('should return diffs between different submission versions', testService((service) =>
+      service.login('alice', (asAlice) =>
+        asAlice.post('/v1/projects/1/forms/simple/submissions')
+          .send(testData.instances.simple.one)
+          .set('Content-Type', 'text/xml')
+          .expect(200)
+          .then(() => asAlice.put('/v1/projects/1/forms/simple/submissions/one')
+            .send(withSimpleIds('one', 'two').replace('<name>Alice</name>','<name>Angela</name>'))
+            .set('Content-Type', 'text/xml')
+            .expect(200))
+          .then(() => asAlice.get('/v1/projects/1/forms/simple/submissions/one/diffs')
+            .expect(200)
+            .then(({ body }) => {
+              const expected = {
+                'two': [
+                  {
+                    "new": "two",
+                    "old": "one",
+                    "path": [ "meta", "instanceID" ]
+                  },
+                  {
+                    "new": "one",
+                    "path": [ "meta", "deprecatedID" ]
+                  },
+                  {
+                    "new": "Angela",
+                    "old": "Alice",
+                    "path": [ "name" ]
+                  }
+                ]
+              };
+              body.should.eql(expected);
+            })))));
   });
 
   describe('[draft] /:instanceId/attachments GET', () => {

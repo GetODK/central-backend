@@ -216,7 +216,7 @@ should.Assertion.add('Audit', function() {
   Object.keys(this.obj).should.containDeep([ 'actorId', 'action', 'acteeId', 'details', 'loggedAt' ]);
   this.obj.actorId.should.be.a.Number();
   this.obj.action.should.be.a.String();
-  this.obj.acteeId.should.be.a.uuid();
+  if (this.obj.acteeId != null) this.obj.acteeId.should.be.a.uuid();
   this.obj.loggedAt.should.be.an.isoDate();
 
   should.not.exist(this.obj.claimed);
@@ -231,6 +231,15 @@ should.Assertion.add('Key', function() {
   this.params = { operator: 'to be an Key' };
 
   Object.keys(this.obj).should.containDeep([ 'hint', 'managed', 'public' ]);
+});
+
+should.Assertion.add('Config', function() {
+  this.params = { operator: 'to be a Config' };
+
+  Object.keys(this.obj).should.containDeep([ 'key', 'value', 'setAt' ]);
+  this.obj.key.should.be.a.String();
+  this.obj.value.should.be.an.Object();
+  this.obj.setAt.should.be.an.isoDate();
 });
 
 should.Assertion.add('SimpleCsv', function() {

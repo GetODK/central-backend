@@ -26,7 +26,7 @@ Forms and their submissions are also accessible through two **open standards spe
 * The [OpenRosa](https://docs.opendatakit.org/openrosa/) standard allows standard integration with tools like the [ODK Collect](https://docs.opendatakit.org/collect-intro/) mobile data collection app, or various other compatible tools like [Enketo](https://enketo.org/). It allows them to see the forms available on the server, and to send new submissions to them.
 * The [OData](http://odata.org/) standard allows data to be shared between platforms for analysis and reporting. Tools like [Microsoft Power BI](https://powerbi.microsoft.com/en-us/) and [Tableau](https://public.tableau.com/en-us/s/) are examples of clients that consume the standard OData format and provide advanced features beyond what we offer. If you are looking for a straightforward JSON output of your data, or you are considering building a visualization or reporting tool, this is your best option.
 
-Finally, **system information and configuration** is available via a set of specialized resources. Currently, you may set the Backups configuration, and retrieve Server Audit Logs.
+Finally, **system information and configuration** is available via a set of specialized resources. Currently, you may set the Backups configuration, set the Analytics configuration, and retrieve Server Audit Logs.
 
 ## Changelog
 
@@ -2053,7 +2053,7 @@ You can use an [OData-style `$filter` query](/reference/odata-endpoints/odata-fo
 + Parameters
     + xmlFormId: `simple` (string, required) - The `xmlFormId` of the Form being referenced.
     + attachments: `true` (boolean, optional) - Set to false to exclude media attachments from the export.
-    + `%24filter`: `year(__system/submissionDate) lt year(now())` (string, optional) - If provided, will filter responses to those matching the given OData query. Only the fields `__system/submitterId` and `__system/submissionDate` are available to reference. The operators `lt`, `lte`, `eq`, `neq`, `gte`, `gt`, `not`, `and`, and `or` are supported, and the built-in functions `now`, `year`, `month`, `day`, `hour`, `minute`, `second`.
+    + `%24filter`: `year(__system/submissionDate) lt year(now())` (string, optional) - If provided, will filter responses to those matching the given OData query. Only [certain fields](/reference/odata-endpoints/odata-form-service/data-document) are available to reference. The operators `lt`, `lte`, `eq`, `neq`, `gte`, `gt`, `not`, `and`, and `or` are supported, and the built-in functions `now`, `year`, `month`, `day`, `hour`, `minute`, `second`.
 
 + Response 200
     + Headers
@@ -2081,7 +2081,7 @@ And so, for this `POST` version of the Submission CSV export endpoint, the passp
 + Parameters
     + xmlFormId: `simple` (string, required) - The `xmlFormId` of the Form being referenced.
     + attachments: `true` (boolean, optional) - Set to false to exclude media attachments from the export.
-    + `%24filter`: `year(__system/submissionDate) lt year(now())` (string, optional) - If provided, will filter responses to those matching the given OData query. Only the fields `__system/submitterId` and `__system/submissionDate` are available to reference. The operators `lt`, `lte`, `eq`, `neq`, `gte`, `gt`, `not`, `and`, and `or` are supported, and the built-in functions `now`, `year`, `month`, `day`, `hour`, `minute`, `second`.
+    + `%24filter`: `year(__system/submissionDate) lt year(now())` (string, optional) - If provided, will filter responses to those matching the given OData query. Only [certain fields](/reference/odata-endpoints/odata-form-service/data-document) are available to reference. The operators `lt`, `lte`, `eq`, `neq`, `gte`, `gt`, `not`, `and`, and `or` are supported, and the built-in functions `now`, `year`, `month`, `day`, `hour`, `minute`, `second`.
 
 + Response 200
     + Headers
@@ -2110,7 +2110,7 @@ Please see the [above endpoint](/reference/submissions/submissions/exporting-for
 
 + Parameters
     + xmlFormId: `simple` (string, required) - The `xmlFormId` of the Form being referenced.
-    + `%24filter`: `year(__system/submissionDate) lt year(now())` (string, optional) - If provided, will filter responses to those matching the given OData query. Only the fields `__system/submitterId` and `__system/submissionDate` are available to reference. The operators `lt`, `lte`, `eq`, `neq`, `gte`, `gt`, `not`, `and`, and `or` are supported, and the built-in functions `now`, `year`, `month`, `day`, `hour`, `minute`, `second`.
+    + `%24filter`: `year(__system/submissionDate) lt year(now())` (string, optional) - If provided, will filter responses to those matching the given OData query. Only [certain fields](/reference/odata-endpoints/odata-form-service/data-document) are available to reference. The operators `lt`, `lte`, `eq`, `neq`, `gte`, `gt`, `not`, `and`, and `or` are supported, and the built-in functions `now`, `year`, `month`, `day`, `hour`, `minute`, `second`.
 
 + Response 200
     + Body
@@ -2135,7 +2135,7 @@ As with [`POST` to `.csv.zip`](/reference/submissions/submissions/exporting-form
 
 + Parameters
     + xmlFormId: `simple` (string, required) - The `xmlFormId` of the Form being referenced.
-    + `%24filter`: `year(__system/submissionDate) lt year(now())` (string, optional) - If provided, will filter responses to those matching the given OData query. Only the fields `__system/submitterId` and `__system/submissionDate` are available to reference. The operators `lt`, `lte`, `eq`, `neq`, `gte`, `gt`, `not`, `and`, and `or` are supported, and the built-in functions `now`, `year`, `month`, `day`, `hour`, `minute`, `second`.
+    + `%24filter`: `year(__system/submissionDate) lt year(now())` (string, optional) - If provided, will filter responses to those matching the given OData query. Only [certain fields](/reference/odata-endpoints/odata-form-service/data-document) are available to reference. The operators `lt`, `lte`, `eq`, `neq`, `gte`, `gt`, `not`, `and`, and `or` are supported, and the built-in functions `now`, `year`, `month`, `day`, `hour`, `minute`, `second`.
 
 + Response 200
     + Body
@@ -2442,6 +2442,45 @@ It is important to note that this endpoint returns whatever is _currently_ uploa
     + Body
 
             (binary data)
+
++ Response 403 (application/json)
+    + Attributes (Error 403)
+
+### Getting changes between Versions [GET /v1/projects/{projectId}/forms/{xmlFormId}/submissions/{instanceId}/diffs
+
+This returns the changes, or edits, between different versions of a Submission. These changes are returned in an object that is indexed by the `instanceId` that uniquely identifies that version. Between two submissions, there is an array of objects representing how each field changed. This change object contains the old and new values, as well as the path of that changed node in the Submission XML. These changes reflect the updated `instanceID` and `deprecatedID` fields as well as the edited value.
+
++ Response 200
+		+ Attributes (array[array[Submission Diff Value]])
+
+    + Body
+
+			{
+			  "two": [
+			    {
+			      "new": "Donna",
+			      "old": "Dana",
+			      "path": ["name"]
+			    },
+			    {
+			      "new": "55",
+			      "old": "44",
+			      "path": ["age"]
+			    },
+			    {
+			      "new": "two",
+			      "old": "one",
+			      "path": ["meta", "instanceID"]
+			    },
+			    {
+			      "new": "one",
+			      "old": null,
+			      "path": ["meta", "deprecatedID"]
+			      ]
+			    }
+			  ]
+			}
+
 
 + Response 403 (application/json)
     + Attributes (Error 403)
@@ -3207,11 +3246,12 @@ As of ODK Central v1.1, the [`$filter` querystring parameter](http://docs.oasis-
 
 The fields you can query against are as follows:
 
-| Submission Metadata  | REST API Name | OData Field Name          |
-| -------------------- | ------------- | ------------------------- |
-| Submitter Actor ID   | `submitterId` | `__system/submitterId`    |
-| Submission Timestamp | `createdAt`   | `__system/submissionDate` |
-| Review State         | `reviewState` | `__system/reviewState`    |
+| Submission Metadata         | REST API Name | OData Field Name          |
+| --------------------------- | ------------- | ------------------------- |
+| Submitter Actor ID          | `submitterId` | `__system/submitterId`    |
+| Submission Timestamp        | `createdAt`   | `__system/submissionDate` |
+| Submission Update Timestamp | `updatedAt`   | `__system/updatedAt`      |
+| Review State                | `reviewState` | `__system/reviewState`    |
 
 Note that the `submissionDate` has a time component. This means that any comparisons you make need to account for the full time of the submission. It might seem like `$filter=__system/submissionDate le 2020-01-31` would return all results on or before 31 Jan 2020, but in fact only submissions made before midnight of that day would be accepted. To include all of the month of January, you need to filter by either `$filter=__system/submissionDate le 2020-01-31T23:59:59.999Z` or `$filter=__system/submissionDate lt 2020-02-01`. Remember also that you can [query by a specific timezone](https://en.wikipedia.org/wiki/ISO_8601#Time_offsets_from_UTC).
 
@@ -3230,7 +3270,7 @@ As the vast majority of clients only support the JSON OData format, that is the 
     + `%24top`: `5` (number, optional) - If supplied, only up to `$top` rows will be returned in the results.
     + `%24count`: `true` (boolean, optional) - If set to `true`, an `@odata.count` property will be added to the result indicating the total number of rows, ignoring the above paging parameters.
     + `%24wkt`: `true` (boolean, optional) - If set to `true`, geospatial data will be returned as Well-Known Text (WKT) strings rather than GeoJSON structures.
-    + `%24filter`: `year(__system/submissionDate) lt year(now())` (string, optional) - If provided, will filter responses to those matching the query. Only the fields `__system/submitterId` and `__system/submissionDate` are available to reference. The operators `lt`, `lte`, `eq`, `neq`, `gte`, `gt`, `not`, `and`, and `or` are supported, and the built-in functions `now`, `year`, `month`, `day`, `hour`, `minute`, `second`.
+    + `%24filter`: `year(__system/submissionDate) lt year(now())` (string, optional) - If provided, will filter responses to those matching the query. Only [certain fields](/reference/odata-endpoints/odata-form-service/data-document) are available to reference. The operators `lt`, `lte`, `eq`, `neq`, `gte`, `gt`, `not`, `and`, and `or` are supported, and the built-in functions `now`, `year`, `month`, `day`, `hour`, `minute`, `second`.
     + `%24expand`: `&#42;` (string, optional) - Repetitions, which should get expanded. Currently, only `&#42` is implemented, which expands all repetitions.
 
 + Response 200 (application/json)
@@ -3413,7 +3453,7 @@ Identical to [the non-Draft version](/reference/odata-endpoints/odata-form-servi
     + `%24top`: `5` (number, optional) - If supplied, only up to `$top` rows will be returned in the results.
     + `%24count`: `true` (boolean, optional) - If set to `true`, an `@odata.count` property will be added to the result indicating the total number of rows, ignoring the above paging parameters.
     + `%24wkt`: `true` (boolean, optional) - If set to `true`, geospatial data will be returned as Well-Known Text (WKT) strings rather than GeoJSON structures.
-    + `%24filter`: `year(__system/submissionDate) lt year(now())` (string, optional) - If provided, will filter responses to those matching the query. Only the fields `__system/submitterId` and `__system/submissionDate` are available to reference. The operators `lt`, `lte`, `eq`, `neq`, `gte`, `gt`, `not`, `and`, and `or` are supported, and the built-in functions `now`, `year`, `month`, `day`, `hour`, `minute`, `second`.
+    + `%24filter`: `year(__system/submissionDate) lt year(now())` (string, optional) - If provided, will filter responses to those matching the query. Only [certain fields](/reference/odata-endpoints/odata-form-service/data-document) are available to reference. The operators `lt`, `lte`, `eq`, `neq`, `gte`, `gt`, `not`, `and`, and `or` are supported, and the built-in functions `now`, `year`, `month`, `day`, `hour`, `minute`, `second`.
 
 + Response 200 (application/json)
     + Body
@@ -3451,7 +3491,7 @@ Identical to [the non-Draft version](/reference/odata-endpoints/odata-form-servi
 
 # Group System Endpoints
 
-There are some resources available for getting or setting system information and configuration. You can [set the Backups configuration](/reference/system-endpoints/backups-configuration) for the server, or you can [retrieve the Server Audit Logs](/reference/system-endpoints/server-audit-logs).
+There are some resources available for getting or setting system information and configuration. You can [set the Backups configuration](/reference/system-endpoints/backups-configuration) for the server, [set the Analytics configuration](/reference/system-endpoints/analytics-configuration), or you can [retrieve the Server Audit Logs](/reference/system-endpoints/server-audit-logs).
 
 ## Backups Configuration [/v1/config/backups]
 
@@ -3459,7 +3499,7 @@ This resource does not conform to REST standards, as it has a multi-step initial
 
 ### Getting the current configuration [GET]
 
-If configured, this endpoint will return a combination of the present backups configuration type, along with the `Audit` log entry of the most recent backup attempt, if one exists. For security reasons, none of the actual internal authentication and encryption information is returned.
+If configured, this endpoint will return the present backups configuration type. For security reasons, none of the actual internal authentication and encryption information is returned.
 
 If no backups are configured, this endpoint will return a `404`.
 
@@ -3468,16 +3508,7 @@ If no backups are configured, this endpoint will return a `404`.
 
             {
                 "type": "google",
-                "setAt": "2018-01-06T00:32:52.787Z",
-                "recent": [{
-                    "acteeId": null,
-                    "action": "backup",
-                    "actorId": null,
-                    "details": {
-                        "success": true
-                    },
-                    "loggedAt": "2018-03-21T03:47:03.504Z"
-                }]
+                "setAt": "2018-01-06T00:32:52.787Z"
             }
 
 + Response 403 (application/json)
@@ -3587,6 +3618,55 @@ Please see the section notes above about the long-running nature of this endpoin
 + Response 403 (application/json)
     + Attributes (Error 403)
 
+## Analytics Configuration [/v1/config/analytics]
+
+_(introduced: version 1.3)_
+
+### Setting a new configuration [POST]
+
+An Administrator can use this endpoint to choose whether the server will share anonymous usage data with the Central team. This configuration affects the entire server. Until the Analytics configuration is set, Administrators will see a message on the Central administration website that provides further information.
+
+If an Administrator specifies `true` for `enabled`, the server will share anonymous usage data monthly with the Central team. By specifying `true`, the Administrator accepts the [Terms of Service](https://getodk.org/legal/tos.html) and [Privacy Policy](https://getodk.org/legal/privacy.html). The Administrator can also share contact information to include with the report.
+
+If an Administrator specifies `false` for `enabled`, the server will not share anonymous usage data with the Central team. Administrators will no longer see the message on the administration website.
+
+If the Analytics configuration is already set, the current configuration will be overwritten with the new one.
+
++ Request (application/json)
+    + Attributes
+        + enabled: `true` (boolean, required) - See above.
+        + email: `my.email.address@getodk.org` (string, optional) - A work email address to include with the metrics report.
+        + organization: `Organization Name` (string, optional) - An organization name to include with the metrics report.
+
++ Response 200 (application/json)
+    + Attributes (Analytics Config)
+
++ Response 403 (application/json)
+    + Attributes (Error 403)
+
+### Getting the current configuration [GET]
+
+If the Analytics configuration is not set, this endpoint will return a `404`. Once the configuration is set, this endpoint will indicate whether the server will share usage data with the Central team. If the server will share usage data, and contact information was provided, this endpoint will also return the provided work email address and organization name.
+
++ Response 200 (application/json)
+    + Attributes (Analytics Config)
+
++ Response 403 (application/json)
+    + Attributes (Error 403)
+
++ Response 404 (application/json)
+    + Attributes (Error 404)
+
+### Unsetting the current configuration [DELETE]
+
+If the Analytics configuration is unset, Administrators will once again see a message on the the Central administration website.
+
++ Response 200 (application/json)
+    + Attributes (Success)
+
++ Response 403 (application/json)
+    + Attributes (Error 403)
+
 ## Server Audit Logs [/v1/audits]
 
 _(introduced: version 0.6)_
@@ -3601,6 +3681,7 @@ Server Audit Logs entries are created for the following `action`s:
 * `user.update` when User information is updated, like email or password.
 * `user.assignment.create` when a User is assigned to a Server Role.
 * `user.assignment.delete` when a User is unassigned from a Server Role.
+* `user.session.create` when a User logs in.
 * `user.delete` when a User is deleted.
 * `project.create` when a new Project is created.
 * `project.update` when top-level Project information is updated, like its name.
@@ -3610,8 +3691,9 @@ Server Audit Logs entries are created for the following `action`s:
 * `form.update.draft.set` when a Draft Form definition is set.
 * `form.update.draft.delete` when a Draft Form definition is deleted.
 * `form.update.publish` when a Draft Form is published to the Form.
-* `form.delete` when a Form is deleted.
 * `form.attachment.update` when a Form Attachment binary is set or cleared.
+* `form.submissions.export` when a Form's Submissions are exported to CSV.
+* `form.delete` when a Form is deleted.
 * `field_key.create` when a new App User is created.
 * `field_key.assignment.create` when an App User is assigned to a Server Role.
 * `field_key.assignment.delete` when an App User is unassigned from a Server Role.
@@ -3626,6 +3708,7 @@ Server Audit Logs entries are created for the following `action`s:
 * `submission.update` when a Submission's metadata is updated.
 * `submission.update.version` when a Submission XML data is updated.
 * `submission.attachment.update` when a Submission Attachment binary is set or cleared, but _only via the REST API_. Attachments created alongside the submission over the OpenRosa `/submission` API (including submissions from Collect) do not generate audit log entries.
+* `config.set` when a system configuration is set.
 * `backup` when a backup operation is attempted.
 
 ### Getting Audit Log Entries [GET /v1/audits{?action,start,end,limit,offset}]
@@ -3766,6 +3849,18 @@ These are in alphabetic order, with the exception that the `Extended` versions o
 + code: `501.1` (string, required)
 + message: `The requested feature $unsupported is not supported by this server.` (string)
 
+## Config (object)
++ key: `some_type` (string, required) - The type of system configuration.
++ setAt: `2018-01-06T00:32:52.787Z` (string, required) - ISO date format. The last time this system configuration was set.
+
+## Analytics Config Value (object)
++ enabled: `true` (boolean, required) - `true` if the server will share usage data with the Central team and `false` if not.
++ email: `my.email.address@getodk.org` (string, optional) - The work email address to include with the metrics report.
++ organization: `Organization Name` (string, optional) - The organization name to include with the metrics report.
+
+## Analytics Config (Config)
++ value: (Analytics Config Value, required) - Details about the Analytics configuration.
+
 ## Form (object)
 + projectId: `1` (number, required) - The `id` of the project this form belongs to.
 + xmlFormId: `simple` (string, required) - The `id` of this form as given in its XForms XML definition
@@ -3860,8 +3955,8 @@ These are in alphabetic order, with the exception that the `Extended` versions o
 + submitterId: `23` (number, required) - The ID of the `Actor` (`App User`, `User`, or `Public Link`) that submitted this `Submission`.
 + deviceId: `imei:123456` (string, optional) - The self-identified `deviceId` of the device that collected the data, sent by it upon submission to the server.
 + reviewState: `approved` (Submission Review State, optional) - The current review state of the submission.
-+ createdAt: `2018-01-19T23:58:03.395Z` (string, required) - ISO date format
-+ updatedAt: `2018-03-21T12:45:02.312Z` (string, optional) - ISO date format
++ createdAt: `2018-01-19T23:58:03.395Z` (string, required) - ISO date format. The time that the server received the Submission.
++ updatedAt: `2018-03-21T12:45:02.312Z` (string, optional) - ISO date format. `null` when the Submission is first created, then updated when the Submission's XML data or metadata is updated.
 
 ## Extended Submission (Submission)
 + submitter (Actor, required) - The full details of the `Actor` that submitted this `Submission`.
@@ -3876,6 +3971,11 @@ These are in alphabetic order, with the exception that the `Extended` versions o
 + hasIssues (string) - Somebody has flagged that this submission has potential problems that need to be addressed.
 + rejected (string) - Somebody has flagged that this submission should be ignored.
 + approved (string) - Somebody has approved this submission.
+
+## Submission Diff Value (object)
++ new (string, nullable) - The new value of this node, which can either be a simple string, or JSON string representing a larger structural change to the Submission XML. It can also be null if this field no longer exists in the Submission.
++ old (string, nullable) - The old value of this node, with similar properties to `new`. It can be null if this field did not exist previously.
++ path (array) - An array representing the path (XPath) in the Submission tree for this node. It does not include the outermost path `data`. For elements that are part of repeat groups, the path element is the node name and the index (starting at 0), e.g. ['child', 2] is the third child.
 
 ## Success (object)
 + success: `true` (boolean, required)
