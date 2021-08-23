@@ -1051,7 +1051,7 @@ Currently, there are no paging or filtering options, so listing `Form`s will get
 
 As of version 1.2, Forms that are unpublished (that only carry a draft and have never been published) will appear with full metadata detail. Previously, certain details like `name` were omitted. You can determine that a Form is unpublished by checking the `publishedAt` value: it will be `null` for unpublished forms.
 
-This endpoint supports retrieving extended metadata; provide a header `X-Extended-Metadata: true` to additionally retrieve the `submissions` count of the number of `Submission`s that each Form has, the `lastSubmission` (most recent submission) and timestamp, as well as the Actor the Form was `createdBy`. The response will also include the `lastSubmissionActivity` timestamp, indicating when a submission was last modified, or created.
+This endpoint supports retrieving extended metadata; provide a header `X-Extended-Metadata: true` to additionally retrieve the `submissions` count of the number of `Submission`s that each Form has and the `lastSubmission` most recent submission timestamp, as well as the Actor the Form was `createdBy`. The response will also include the `lastSubmissionActivity` timestamp, indicating when a submission was last modified, or created.
 
 + Response 200 (application/json)
     This is the standard response, if Extended Metadata is not requested:
