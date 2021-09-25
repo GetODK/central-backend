@@ -174,9 +174,10 @@ should.Assertion.add('ExtendedForm', function() {
   this.params = { operator: 'to be a ExtendedForm' };
 
   this.obj.should.be.a.Form();
-  Object.keys(this.obj).should.containDeep([ 'submissions', 'lastSubmission' ]);
+  Object.keys(this.obj).should.containDeep([ 'submissions', 'lastSubmission', 'lastSubmissionActivity' ]);
   if (this.obj.submissions != null) this.obj.submissions.should.be.a.Number();
   if (this.obj.lastSubmission != null) this.obj.lastSubmission.should.be.an.isoDate();
+  if (this.obj.lastSubmissionActivity != null) this.obj.lastSubmissionActivity.should.be.an.isoDate();
 });
 
 should.Assertion.add('Project', function() {
