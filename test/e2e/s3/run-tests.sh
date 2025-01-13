@@ -1,7 +1,6 @@
 #!/bin/bash -eu
 set -o pipefail
 
-serverUrl="http://localhost:8383"
 userEmail="x@example.com"
 userPassword="secret1234"
 
@@ -16,11 +15,6 @@ cleanup() {
   kill -- -$$
 }
 trap cleanup EXIT SIGINT SIGTERM SIGHUP
-
-if curl -s -o /dev/null $serverUrl; then
-  log "!!! Error: server already running at: $serverUrl"
-  exit 1
-fi
 
 make base
 
@@ -52,20 +46,50 @@ EOF
   read -rp ''
 fi
 
-NODE_CONFIG_ENV=s3-dev node lib/bin/s3-create-bucket.js
-NODE_CONFIG_ENV=s3-dev make run &
-serverPid=$!
+run_suite() {
+  suite="$1"
 
-log 'Waiting for backend to start...'
-timeout 30 bash -c "while ! curl -s -o /dev/null $serverUrl; do sleep 1; done"
-log 'Backend started!'
+  log "Running suite '$suite' ..."
 
-cd test/e2e/s3
-npx mocha test.js
+  case "$suite" in
+    smoke) testOptions=(--fgrep @smoke-test) ;;
+    all)   testOptions=() ;;
+    *) log "!!! Error: unrecongised test suite: $suite"; exit 1 ;;
+  esac
 
-if ! curl -s -o /dev/null "$serverUrl"; then
-  log '!!! Backend died.'
-  exit 1
-fi
+  NODE_CONFIG_ENV="s3-dev" node lib/bin/s3-create-bucket.js
 
-log "Tests completed OK."
+  serverPort="$(NODE_CONFIG_ENV="s3-dev" node -e 'console.log(require("config").default.server.port)')"
+  serverUrl="http://localhost:$serverPort"
+  if curl -s -o /dev/null "$serverUrl"; then
+    log "!!! Error: server already running at: $serverUrl"
+    exit 1
+  fi
+
+  NODE_CONFIG_ENV="s3-dev" make run &
+
+  log 'Waiting for backend to start...'
+  timeout 30 bash -c "while ! curl -s -o /dev/null $serverUrl; do sleep 1; done"
+  log 'Backend started!'
+
+  cd test/e2e/s3
+  NODE_CONFIG_ENV="s3-dev" NODE_CONFIG_DIR=../../../config npx mocha "${testOptions[@]}" test.js
+  cd -
+
+  if ! curl -s -o /dev/null "$serverUrl"; then
+    log '!!! Backend died.'
+    exit 1
+  fi
+
+  log "Suite '$suite' completed OK."
+}
+
+NODE_CONFIG='{ "default":{ "server":{ "port":8384 }, "external":{ "s3blobStore":{ "region":"" } } } }' \
+run_suite smoke
+
+NODE_CONFIG='{ "default":{ "server":{ "port":8385 }, "external":{ "s3blobStore":{ "region":"eu-east-1" } } } }' \
+run_suite smoke
+
+run_suite all
+
+log "All tests completed OK."
